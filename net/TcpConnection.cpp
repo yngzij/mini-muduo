@@ -19,6 +19,7 @@ TcpConnection::TcpConnection(EventLoop *loop, std::string name, int sockfd, cons
                                                                   sockfd_(sockfd),
                                                                   localAddr_(localAddr), peerAddr_(peerAddr),
                                                                   channel_(new Channel(loop, sockfd)) {
+
     channel_->setReadCallback(
             std::bind(&TcpConnection::handleRead, this, _1));
     channel_->setWriteCallback(
