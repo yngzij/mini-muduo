@@ -50,8 +50,9 @@ void Kqueue::updateChannel(Channel *channel) {
 }
 
 Timestamp Kqueue::poll(int timeoutMs, Poller::ChannelList *activeChannels) {
+    assertInLoopThread();
     int numEvents = kevent(kqueuefd_, nullptr, 0, &*events_.begin(), static_cast<int>(events_.size()),
-                           reinterpret_cast<const timespec *>(timeoutMs));
+                           nullptr);
     Timestamp now(Timestamp::now());
     if (numEvents > 0) {
         fillActiveChannels(numEvents, activeChannels);
@@ -98,9 +99,7 @@ void Kqueue::update(int operation, Channel *channel) {
         case EV_ADD:
         case EV_ENABLE:
             EV_SET(&ev, fd, EVFILT_READ, operation, 0, 0, channel);
-            EV_SET(&ev, fd, EVFILT_WRITE, operation, 0, 0, channel);
             break;
-
         case EV_DELETE:
             EV_SET(&ev, fd, EVFILT_READ, EV_DELETE, 0, 0, nullptr);
             EV_SET(&ev, fd, EVFILT_WRITE, EV_DELETE, 0, 0, nullptr);
@@ -113,8 +112,10 @@ void Kqueue::update(int operation, Channel *channel) {
 
     std::cout << "kevent op = " << operationToString(operation)
               << " fd = " << fd << " event = { " << channel->eventsToString() << " }";
-    int ret = kevent(kqueuefd_, &ev, (operation == EV_DELETE) ? 1 : 2, nullptr, 0, nullptr);
+    int ret = kevent(kqueuefd_, &ev, 1, nullptr, 0, nullptr);
     if (ret < 0) {
+        perror("kevent error");
+        printf("ret = %d\n", errno);
         if (operation == EV_DELETE) {
             //LOG_SYSERR << "kevent op =" << operationToString(operation) << " fd =" << fd;
         } else {

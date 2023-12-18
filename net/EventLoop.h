@@ -15,6 +15,7 @@
 
 #include "nocopyable.h"
 #include "Mutex.h"
+#include "Timestamp.h"
 
 
 class Channel;
@@ -70,6 +71,7 @@ public:
     bool hasChannel(Channel *channel);
 
     void doPendingFunctors();
+    void queueInLoop(Functor);
 private:
     typedef std::vector<Channel *> ChannelList;
 
@@ -82,6 +84,7 @@ private:
     bool callingPendingFunctors_; /* atomic */
     std::vector<Functor> pendingFunctors_ GUARDED_BY(mutex_);
     std::unique_ptr<Channel> wakeupChannel_;
+    Timestamp pollReturnTime_;
     Channel *currentActiveChannel_;
     mutable MutexLock mutex_;
 

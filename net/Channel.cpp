@@ -28,8 +28,16 @@ Channel::Channel(EventLoop *loop, int fd__) : loop_(loop),
                                               addedToLoop_(false) {
 }
 
-void Channel::handleEvent() {
-
+void Channel::handleEvent(Timestamp receiveTime) {
+    std::shared_ptr<void> guard;
+    if (tied_) {
+        guard = tie_.lock();
+        if (guard) {
+            handleEventWithGuard(receiveTime);
+        }
+    } else {
+        handleEventWithGuard(receiveTime);
+    }
 }
 
 Channel::~Channel() {
@@ -41,7 +49,15 @@ Channel::~Channel() {
 }
 
 void Channel::handleEventWithGuard(Timestamp receiveTime) {
+    eventHandling_ = true;
+    if ((revents_ & EVFILT_READ) && readCallback_) {
+        readCallback_(receiveTime);
+    }
+    if ((revents_ & EVFILT_WRITE) && writeCallback_) {
+        writeCallback_();
+    }
 
+    eventHandling_ = false;
 }
 
 void Channel::update() {

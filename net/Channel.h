@@ -37,7 +37,7 @@ public:
 
     void setErrorCallback(EventCallback cb) { errorCallback_ = std::move(cb); }
 
-    void handleEvent();
+    void handleEvent(Timestamp timestamp);
 
     EventLoop *ownerLoop() { return loop_; }
 

@@ -26,10 +26,10 @@ void EventLoop::loop() {
     quit_ = false;
     while (!quit_) {
         activeChannels_.clear();
-        poller_->poll(kPollTimeMs, &activeChannels_);
+        pollReturnTime_ = poller_->poll(kPollTimeMs, &activeChannels_);
 
         for (auto it = activeChannels_.begin(); it != activeChannels_.end(); ++it) {
-            (*it)->handleEvent();
+            (*it)->handleEvent(pollReturnTime_);
         }
         doPendingFunctors();
     }
@@ -75,6 +75,10 @@ bool EventLoop::hasChannel(Channel *channel) {
 
 EventLoop::~EventLoop() {
     close(wakeupFd_);
+}
+
+void EventLoop::queueInLoop(Functor cb) {
+
 }
 
 
