@@ -21,6 +21,15 @@ class Channel : noncopyable {
 public:
     Channel(EventLoop *loop, int fd);
     ~Channel();
+
+    void setFd(int fd) { fd_ = fd; }
+
+    void tie(const std::shared_ptr<void> &obj) {
+        tie_ = obj;
+        tied_ = true;
+    }
+
+    void remove();
 private:
     static const int kNoneEvent;
     static const int kReadEvent;
@@ -92,7 +101,7 @@ private:
 
 
     EventLoop *loop_;
-    const int fd_;
+    int fd_;
     int events_;
     int revents_;
     int index_;
@@ -100,7 +109,6 @@ private:
     bool tied_;
     bool eventHandling_;
     bool addedToLoop_;
-
     std::weak_ptr<void> tie_;
 
     ReadEventCallback readCallback_;

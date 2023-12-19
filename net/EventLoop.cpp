@@ -64,7 +64,13 @@ void EventLoop::updateChannel(Channel *channel) {
 }
 
 void EventLoop::removeChannel(Channel *channel) {
-
+    assert(channel->ownerLoop() == this);
+    assertInLoopThread();
+    if (eventHandling_) {
+        assert(currentActiveChannel_ == channel ||
+               std::find(activeChannels_.begin(), activeChannels_.end(), channel) == activeChannels_.end());
+    }
+    poller_->removeChannel(channel);
 }
 
 bool EventLoop::hasChannel(Channel *channel) {
@@ -78,7 +84,23 @@ EventLoop::~EventLoop() {
 }
 
 void EventLoop::queueInLoop(Functor cb) {
+    {
+        MutexLockGuard lock(mutex_);
+        pendingFunctors_.push_back(std::move(cb));
+    }
+    if (!isInLoopThread() || callingPendingFunctors_) {
+        wakeup();
+    }
+}
 
+void EventLoop::runInLoop(EventLoop::Functor cb) {
+    // 如果是当前线程调用，直接执行
+    if (isInLoopThread()) {
+        cb();
+        // 如果不是当前线程调用，加入队列，唤醒loop所在线程
+    } else {
+        queueInLoop(std::move(cb));
+    }
 }
 
 

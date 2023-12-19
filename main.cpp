@@ -1,5 +1,6 @@
 #include "net/EventLoop.h"
 #include "Channel.h"
+#include "FileServer.h"
 
 #include <iostream>
 #include <sys/socket.h>
@@ -33,9 +34,7 @@ void readCallback(Timestamp receiveTime, int fd, int idx) {
 }
 
 int main() {
-    EventLoop loop;
-
-    int listen_socket = socket(AF_INET, SOCK_STREAM, 0);
+    /*int listen_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (listen_socket == -1) {
         perror("socket");
         exit(EXIT_FAILURE);
@@ -62,9 +61,17 @@ int main() {
     //channel.setReadCallback(onReadCallback);
 
     channel.setReadCallback(std::bind(readCallback, std::placeholders::_1, channel.fd(), 2));
-    channel.enableReading();
+    channel.enableReading();*/
+
+    EventLoop loop;
+    struct sockaddr_in server_address{};
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = INADDR_ANY;
+    server_address.sin_port = htons(9090);
+
+    FileServer server(&loop, server_address);
+    server.start();
 
     loop.loop();
-
     return 0;
 }

@@ -5,11 +5,22 @@
 #include "Acceptor.h"
 
 #include <errno.h>
+#include <sys/fcntl.h>
+#include "EventLoop.h"
 
-Acceptor::Acceptor(EventLoop *loop, const struct sockaddr_in &listenAddr) {
+#include "Sockets.h"
+
+
+Acceptor::Acceptor(EventLoop *loop, const struct sockaddr_in &listenAddr) :
+        loop_(loop),
+        acceptChannel_(loop, acceptSocket_),
+        acceptSocket_(sockets::createNonblockingOrDie(listenAddr.sin_family)),
+        listening_(false),
+        idleFd_(open("/dev/null", O_RDONLY | O_CLOEXEC)
+        ) {
     loop_ = loop;
-    acceptChannel_.setFd(socket_bind_listen(listenAddr));
     acceptChannel_.setReadCallback(std::bind(&Acceptor::handleRead, this));
+
 }
 
 Acceptor::~Acceptor() {
@@ -21,6 +32,7 @@ Acceptor::~Acceptor() {
 void Acceptor::listen() {
     loop_->assertInLoopThread();
     listening_ = true;
+    ::listen(acceptSocket_, 20);
     acceptChannel_.enableReading();
 }
 
@@ -28,10 +40,14 @@ void Acceptor::handleRead() {
     loop_->assertInLoopThread();
     struct sockaddr_in peerAddr;
     //FIXME loop until no more
-    int connfd = socket_accept(acceptChannel_.fd(), &peerAddr);
+    socklen_t peerAddrLen = sizeof(peerAddr);
+    int connfd = accept(acceptSocket_, (struct sockaddr *) &peerAddr, &peerAddrLen);
+
     if (connfd >= 0) {
-        // string hostport = peerAddr.toIpPort();
-        // LOG_TRACE << "Accept
-        // s of " << hostport;
+        if (newConnectionCallback_) {
+            newConnectionCallback_(connfd, peerAddr);
+        } else {
+            close(connfd);
+        }
     }
 }

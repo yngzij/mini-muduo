@@ -32,6 +32,8 @@ public:
     void quit();
     typedef std::function<void()> Functor;
 
+    void runInLoop(Functor cb);
+
     bool isInLoopThread() const {
         return threadId_ == CurrentThread::tid();
     }
@@ -87,7 +89,7 @@ private:
     Timestamp pollReturnTime_;
     Channel *currentActiveChannel_;
     mutable MutexLock mutex_;
-
+    bool eventHandling_;
 };
 
 

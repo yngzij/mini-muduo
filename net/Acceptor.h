@@ -5,50 +5,45 @@
 #ifndef MINI_MUDUO_ACCEPTOR_H
 #define MINI_MUDUO_ACCEPTOR_H
 
+
+#include <memory>
+#include <functional>
+
+#include "nocopyable.h"
+#include "Channel.h"
+
+
 class EventLoop;
 
-class Channel;
 
-class Acceptor {
+class Acceptor : noncopyable {
 public:
+    Acceptor(EventLoop *loop, const struct sockaddr_in &listenAddr);
+
+    ~Acceptor();
+
     typedef std::function<void(int sockfd, const struct sockaddr_in &)> NewConnectionCallback;
 
-    Acceptor(EventLoop *loop, const struct sockaddr_in &listenAddr);
 
-    ~Acceptor();
+    void listen();
+
+    bool listening() const { return listening_; }
+
 
     void setNewConnectionCallback(const NewConnectionCallback &cb) {
         newConnectionCallback_ = cb;
     }
-
-    bool listenning() const {
-        return listenning_;
-    }
-
-    void listen();
-
-    Acceptor(EventLoop *loop, const struct sockaddr_in &listenAddr);
-
-    ~Acceptor();
-
-    void setNewConnectionCallback(const NewConnectionCallback &cb) {
-        newConnectionCallback_ = cb;
-    }
-
-    bool listenning() const {
-        return listenning_;
-    }
-
-    void listen();
 
 private:
     void handleRead();
-
-    EventLoop *loop_;
+    int acceptSocket_;
     Channel acceptChannel_;
+    EventLoop *loop_;
+    std::unique_ptr<Acceptor> acceptor_; // avoid revealing Acceptor
     NewConnectionCallback newConnectionCallback_;
     bool listening_;
     int idleFd_;
+
 };
 
 

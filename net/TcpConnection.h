@@ -29,10 +29,39 @@ public:
     TcpConnection(EventLoop *loop, std::string name, int sockfd, const sockaddr_in localAddr,
                   const sockaddr_in peerAddr);
 
+    // get peer address
+    std::string getPeerAddr() const;
     void shutdownInLoop();
+
+    EventLoop *getLoop() const { return loop_; }
+
+    const string &name() const { return name_; }
+
+    void connectDestroyed();  // should be called only once
+
+    void setConnectionCallback(const ConnectionCallback &cb) {
+        connectionCallback_ = cb;
+    }
+
+    void setMessageCallback(const MessageCallback &cb) {
+        messageCallback_ = cb;
+    }
+
+    void setCloseCallback(const CloseCallback &cb) {
+        closeCallback_ = cb;
+    }
+
+    void setWriteCompleteCallback(const WriteCompleteCallback &cb) {
+        writeCompleteCallback_ = cb;
+    }
+
+    void connectEstablished();
+
 
     ~TcpConnection();
 private:
+
+
     void handleRead(Timestamp receiveTime);
     void handleWrite();
     void handleClose();
@@ -47,6 +76,9 @@ private:
     enum StateE {
         kDisconnected, kConnecting, kConnected, kDisconnecting
     };
+
+    void setState(StateE s) { state_ = s; }
+
     EventLoop *loop_;
     const std::string name_;
     StateE state_;

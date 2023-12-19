@@ -8,7 +8,8 @@
 
 #include "copyable.h"
 #include "SingPiece.h"
-
+#include "Sockets.h"
+#include "Endian.h"
 #include <algorithm>
 #include <vector>
 

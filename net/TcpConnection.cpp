@@ -7,6 +7,7 @@
 #include <utility>
 #include <memory>
 #include <errno.h>
+#include <arpa/inet.h>
 
 #include "EventLoop.h"
 #include "TcpConnection.h"
@@ -53,9 +54,9 @@ TcpConnection::~TcpConnection() {
 void TcpConnection::handleWrite() {
     loop_->assertInLoopThread();
     if (channel_->isWriting()) {
-        ssize_t n = sockets::write(channel_->fd(),
-                                   outputBuffer_.peek(),
-                                   outputBuffer_.readableBytes());
+        ssize_t n = write(channel_->fd(),
+                          outputBuffer_.peek(),
+                          outputBuffer_.readableBytes());
         if (n > 0) {
             outputBuffer_.retrieve(n);
             if (outputBuffer_.readableBytes() == 0) {
@@ -94,4 +95,28 @@ void TcpConnection::shutdownInLoop() {
 
 void TcpConnection::handleError() {
 
+}
+
+void TcpConnection::connectEstablished() {
+    loop_->assertInLoopThread();
+    assert(state_ == kConnecting);
+    setState(kConnected);
+    channel_->tie(shared_from_this());
+    channel_->enableReading();
+
+    connectionCallback_(shared_from_this());
+}
+
+void TcpConnection::connectDestroyed() {
+    loop_->assertInLoopThread();
+    if (state_ == kConnected) {
+        setState(kDisconnected);
+        channel_->disableAll();
+        connectionCallback_(shared_from_this());
+    }
+    channel_->remove();
+}
+
+std::string TcpConnection::getPeerAddr() const {
+    return std::string(inet_ntoa(peerAddr_.sin_addr)) + ":" + std::to_string(ntohs(peerAddr_.sin_port));
 }

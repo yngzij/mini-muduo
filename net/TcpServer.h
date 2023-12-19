@@ -10,16 +10,32 @@
 #include <map>
 
 #include "Callback.h"
+#include "Atomic.h"
 #include "Callbacks.h"
 
 
 class EventLoop;
 
 
+class Acceptor;
+
+
 class TcpServer {
 public:
-    TcpServer(EventLoop *loop);
+    TcpServer(EventLoop *loop, const struct sockaddr_in &listenAddr);
     ~TcpServer();
+
+    void start();
+
+    void setConnectionCallback(const ConnectionCallback &cb) { connectionCallback_ = cb; }
+
+    /// Set message callback.
+    /// Not thread safe.
+    void setMessageCallback(const MessageCallback &cb) { messageCallback_ = cb; }
+
+    /// Set write complete callback.
+    /// Not thread safe.
+    void setWriteCompleteCallback(const WriteCompleteCallback &cb) { writeCompleteCallback_ = cb; }
 
 private:
     /// Not thread safe, but in loop
@@ -33,10 +49,15 @@ private:
 
     const std::string ipPort_;
     const std::string name_;
-
-
     EventLoop *loop_;
+    int nextConnId_;
     ConnectionMap connections_;
+    std::unique_ptr<Acceptor> acceptor_; // avoid revealing Acceptor
+    ConnectionCallback connectionCallback_;
+    MessageCallback messageCallback_;
+    WriteCompleteCallback writeCompleteCallback_;
+    //ThreadInitCallback threadInitCallback_;
+    AtomicInt32 started_;
 };
 
 
